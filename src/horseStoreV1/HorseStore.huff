@@ -1,0 +1,69 @@
+//60008060093d393df3 -> Contract Creation Bytecode
+
+/* Interface */
+#define function updateHorseNumber(uint256) nonpayable returns()
+#define function readNumberOfHorses() view returns (uint256)
+
+#define constant NUMBER_OF_HORSES_STORAGE_SLOT = FREE_STORAGE_POINTER() //Ox00
+//#define constant NUMBER_OF_HORSES_STORAGE_SLOT = FREE_STORAGE_SLOT() //0x01
+
+//60018060093d393df35f
+//CODECOPY '39'
+#define macro MAIN() = takes(0) returns(0) {
+    // 0x00 //PUSH0 5f [0]
+
+    // calldataload   //[calldata] 从calldata中加载32个字节,偏移量为0x00(上)
+
+    // 0xe0     //[0xe0, calldata] 224
+    // shr      //右移 224位,保留前4个字节
+
+    0x00 calldataload 0xe0 shr //[function_selector]
+
+    dup1         //[function_selector, function_selector] 
+
+    //0xcdfead2e updateHorseNumber
+    //0xe026c017 readNumberOfHorses
+ 
+    //0xcdfead2e //[0xcdfead2e, function_selector, function_selector]
+    __FUNC_SIG(updateHorseNumber) //替代 0xcdfead2e
+    eq           //[true_if_equal, function_selector]
+
+    updateJump   //[updateHorseNumberProgramCounter, true/false, function_selector]
+    jumpi        //[function_selector] if true jump to updateHorseNumberProgramCounter
+
+
+    __FUNC_SIG(readNumberOfHorses) //[0xe026c017, function_selector]
+    eq          //[true_if_equal]
+    readJump    //[readNumberOfHorsesProgramCounter, true/false]
+    jumpi       // if true jump to readNumberOfHorsesProgramCounter
+
+    0x00 0x00 revert
+
+    updateJump: 
+        SET_NUMBER_OF_HORSES()
+    readJump: 
+        READ_NUMBER_OF_HORSES()
+
+} 
+#define macro SET_NUMBER_OF_HORSES() = takes(0) returns(0) {
+    //2. read the calldata
+    0x04           //[4] push the offset of the first argument
+    calldataload   //[value] push the calldata onto the stack
+
+    //1. give it a storage slot
+    [NUMBER_OF_HORSES_STORAGE_SLOT]  //[storage_slot, value]
+    //3. store the calldata into the storage slot
+    sstore         //[]
+    stop //end of program,否则会继续往下执行
+}
+
+#define macro READ_NUMBER_OF_HORSES() = takes(0) returns(0) {
+    [NUMBER_OF_HORSES_STORAGE_SLOT]        //[0]
+    sload                                   //[value]
+    0x00                                    //[0, value]
+    mstore                                  //[], memory: [value(32 bytes)]
+
+    0x20  //length
+    0x00
+    return
+}
